@@ -1064,6 +1064,70 @@
     "display": "book",
     "from": 0
    }
+  },
+  {
+   "name": "6 list item is a list item for the Tab rule",
+   "fn": "isListItem",
+   "args": [
+    "- buy milk #book "
+   ],
+   "expected": true
+  },
+  {
+   "name": "6 task item is a list item",
+   "fn": "isListItem",
+   "args": [
+    "- [ ] call Bob #book "
+   ],
+   "expected": true
+  },
+  {
+   "name": "6 list item in a quote is a list item",
+   "fn": "isListItem",
+   "args": [
+    "> - buy milk #book "
+   ],
+   "expected": true
+  },
+  {
+   "name": "6 list item in a nested callout is a list item",
+   "fn": "isListItem",
+   "args": [
+    "> > 1. first #book "
+   ],
+   "expected": true
+  },
+  {
+   "name": "6 list item in a quote with no space after the mark is a list item",
+   "fn": "isListItem",
+   "args": [
+    ">- buy milk #book "
+   ],
+   "expected": true
+  },
+  {
+   "name": "6 quote text is not a list item",
+   "fn": "isListItem",
+   "args": [
+    "> quote #book "
+   ],
+   "expected": false
+  },
+  {
+   "name": "6 callout title is not a list item",
+   "fn": "isListItem",
+   "args": [
+    "> [!note] Title #book "
+   ],
+   "expected": false
+  },
+  {
+   "name": "6 dash with no space is not a list item",
+   "fn": "isListItem",
+   "args": [
+    "-not a list #book "
+   ],
+   "expected": false
   }
  ]
 }

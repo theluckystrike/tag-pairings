@@ -129,9 +129,15 @@ const FENCE_OPEN = /^\s{0,3}(?:[>-]\s*)*(`{3,}|~{3,})(.*)$/u;
 const FENCE_CLOSE = /^\s{0,3}(?:>\s*)*(`{3,}|~{3,})\s*$/u;
 const LIST_ITEM = /^\s*(?:[-*+]|\d+[.)])\s/u;
 
-/** True when the line is a list item or a task item ("- ", "* ", "+ ", "1. ", "1) ", with or without indent). */
+/** A list item after zero or more quote marks (">"), for a list in a quote or a callout. */
+const QUOTED_LIST_ITEM = /^\s*(?:>\s*)*(?:[-*+]|\d+[.)])\s/u;
+
+/**
+ * True when the line is a list item or a task item ("- ", "* ", "+ ", "1. ", "1) ", with or without indent), also in
+ * a quote or a callout ("> - item", "> > 1. item").
+ */
 export function isListItem(line: string): boolean {
-	return LIST_ITEM.test(line);
+	return QUOTED_LIST_ITEM.test(line);
 }
 
 /** Number of times `mark` occurs in the line. */

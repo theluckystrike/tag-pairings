@@ -16,7 +16,7 @@ The list leaves out the tags that the note already has, in the body and in the f
 
 ### Add one tag after the other
 
-Press Shift+Enter or Tab, or click a tag, to add it. Enter adds the tag only after you move the highlight with Up or Down. The plugin inserts the tag and a space, for example `#fiction `. The box then opens again with the tags that occur with the tag that you just added. Press Shift+Enter again to add the next one.
+Press Shift+Enter or Tab, or click a tag, to add it. Enter adds the tag only after you move the highlight with Up or Down. On a list item line, Tab indents the item until you press Up or Down. The plugin inserts the tag and a space, for example `#fiction `. The box then opens again with the tags that occur with the tag that you just added. Press Shift+Enter again to add the next one.
 
 <img src="https://raw.githubusercontent.com/theluckystrike/tag-pairings/HEAD/docs/tag-pairings.gif" alt="The cursor after a line of text, then the box after #book, then #fiction and #scifi added with two presses of Shift+Enter" width="720">
 
@@ -99,7 +99,7 @@ This rule uses an internal key order of Obsidian. If a later version changes it,
 
 ### Does Tab still indent a list item?
 
-Yes. On a list item line, Tab closes the box and indents the item, until you move the highlight with Up or Down. After that, Tab adds the tag.
+Yes. On a list item line, Tab indents the item and adds no tag, until you move the highlight with Up or Down. After Up or Down, Tab adds the tag. After an indent, the box shows again for the same tag.
 
 ### Why do Up and Down not move the cursor?
 

@@ -39,7 +39,8 @@ export class PairSuggest extends EditorSuggest<Pairing> {
 		super(app);
 		this.setInstructions([
 			{ command: '↑↓', purpose: 'to move' },
-			{ command: 'shift ↵ or tab', purpose: 'to add the tag' },
+			{ command: 'shift ↵', purpose: 'to add the tag' },
+			{ command: 'tab', purpose: 'to add the tag (list item: after ↑↓, else indent)' },
 			{ command: '↵', purpose: 'to add after ↑↓, else new line' },
 			{ command: 'esc', purpose: 'to dismiss' },
 		]);

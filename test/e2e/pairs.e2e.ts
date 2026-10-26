@@ -47,27 +47,60 @@ async function focusWindow(): Promise<void> {
 	});
 }
 
-/** Opens Host.md with the given text, in Live Preview (source false) or Source mode (source true), cursor at the end. */
+/**
+ * Opens Host.md with the given text, in Live Preview (source false) or Source mode (source true), cursor at the end.
+ * It uses one Markdown tab only: obsidianPage.openFile opens a new tab each time, and Obsidian syncs every open view of
+ * the same note and merges each save into the other views. With many views a late merge put setup text into the middle
+ * of the typed tag (probe run 40366514579). The text is saved, and the test waits until the file on disk has it.
+ */
 async function openHost(text: string, source: boolean): Promise<void> {
-	// No file write here: a write from outside reloads the open editor some time later and can drop typed keys.
-	await obsidianPage.openFile('Host.md');
-	await browser.executeObsidian(async ({ app }, src) => {
-		const leaf = app.workspace.getMostRecentLeaf();
-		if (!leaf) return;
-		const s = leaf.getViewState();
-		await leaf.setViewState({ ...s, state: { ...s.state, mode: 'source', source: src } });
-	}, source);
+	await browser.executeObsidian(
+		async ({ app, obsidian }, src) => {
+			const file = app.vault.getAbstractFileByPath('Host.md');
+			if (!(file instanceof obsidian.TFile)) throw new Error('no Host.md');
+			const leaves = app.workspace.getLeavesOfType('markdown');
+			const leaf = leaves[0] ?? app.workspace.getLeaf(false);
+			for (const other of leaves.slice(1)) other.detach();
+			await leaf.openFile(file);
+			app.workspace.setActiveLeaf(leaf, { focus: true });
+			const s = leaf.getViewState();
+			await leaf.setViewState({ ...s, state: { ...s.state, mode: 'source', source: src } });
+		},
+		source,
+	);
 	await focusWindow();
 	await browser.$(`${ACTIVE} .markdown-source-view .cm-content`).click();
-	await browser.executeObsidian(({ app }, t) => {
+	await setHostText(text);
+	await browser.executeObsidian(({ app }) => {
 		const e = app.workspace.activeEditor?.editor;
 		if (!e) return;
-		if (e.getValue() !== t) e.setValue(t);
 		e.focus();
 		const last = e.lastLine();
 		e.setCursor({ line: last, ch: e.getLine(last).length });
-	}, text);
+	});
 	await browser.keys('Escape');
+}
+
+/** Sets the text of the open host note, saves it, and waits until the file on disk has the same text. */
+async function setHostText(text: string): Promise<void> {
+	await browser.executeObsidian(async ({ app, obsidian }, t) => {
+		const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+		if (!view || view.file?.path !== 'Host.md') throw new Error('the host note is not the active view');
+		if (view.editor.getValue() !== t) view.editor.setValue(t);
+		await view.save();
+	}, text);
+	let disk = '';
+	await browser
+		.waitUntil(
+			async () => {
+				disk = await browser.executeObsidian(({ app }) => app.vault.adapter.read('Host.md'));
+				return disk === text;
+			},
+			{ timeout: 10000, interval: 100 },
+		)
+		.catch(() => {
+			throw new Error(`Host.md on disk is ${JSON.stringify(disk)}, not ${JSON.stringify(text)}`);
+		});
 }
 
 /** The texts of the items of the Tag Pairings box, or [] when it is not open. */
@@ -99,7 +132,7 @@ async function lastLine(): Promise<string> {
 
 /** Sets the host note back to "Start" and waits until the index has the seed rank again (the host note counts too). */
 async function resetHost(): Promise<void> {
-	await browser.executeObsidian(({ app }) => app.workspace.activeEditor?.editor?.setValue('Start\n'));
+	await setHostText('Start\n');
 	await browser.waitUntil(
 		async () =>
 			browser.executeObsidian(({ app }, id) => {
@@ -115,16 +148,32 @@ async function typeText(text: string): Promise<void> {
 	for (const ch of text) await browser.keys(ch);
 }
 
+/**
+ * Wraps a test body. On a failure it logs the test title, the error and the editor text, also for an attempt that runs
+ * again. retries: how many times a failed attempt runs again.
+ */
+function logged(fn: (this: Mocha.Context) => Promise<void>, retries: number): (this: Mocha.Context) => Promise<void> {
+	return async function (this: Mocha.Context) {
+		this.retries(retries);
+		try {
+			await fn.call(this);
+		} catch (err) {
+			const text = await browser.executeObsidian(({ app }) => app.workspace.activeEditor?.editor?.getValue() ?? null).catch(() => null);
+			console.log(`ATTEMPT FAILED "${this.test?.title ?? ''}": ${err instanceof Error ? err.message : String(err)}; editor text ${JSON.stringify(text)}`);
+			throw err;
+		}
+	};
+}
+
 describe('Tag Pairings in the real app', function () {
-	// The suite drives real key presses on a shared CI runner. A test that fails runs again up to 2 times. Each test sets
-	// the host note text first, so a run again starts from the same state.
-	this.retries(2);
+	// No test runs again (retries 0), so that each failure shows. The cause of the old flakes was the harness: a new tab
+	// for each openHost (see openHost).
 
 	before(async function () {
 		await seed();
 	});
 
-	it('criterion 8: Live Preview, "#book " opens the box in rank order; Down then Enter inserts "#novel " and the box opens again', async function () {
+	it('criterion 8: Live Preview, "#book " opens the box in rank order; Down then Enter inserts "#novel " and the box opens again', logged(async function () {
 		await openHost('Start\nRead ', false);
 		await typeText('#book ');
 		await waitItems(['#fiction', '#novel', '#history', '#Reading']);
@@ -139,17 +188,17 @@ describe('Tag Pairings in the real app', function () {
 		await browser.waitUntil(async () => (await lastLine()) === 'Read #book #novel #fiction ', { timeout: 5000, timeoutMsg: 'Shift+Enter did not add the tag' });
 		const text = await browser.executeObsidian(({ app }) => app.workspace.activeEditor?.editor?.getValue());
 		expect(text).toBe('Start\nRead #book #novel #fiction ');
-	});
+	}, 0));
 
-	it('criterion 8: Tab adds the highlighted tag', async function () {
+	it('criterion 8: Tab adds the highlighted tag', logged(async function () {
 		await openHost('Start\n', false);
 		await typeText('#book ');
 		await waitItems(['#fiction', '#novel', '#history', '#Reading']);
 		await browser.keys('Tab');
 		await browser.waitUntil(async () => (await lastLine()) === '#book #fiction ', { timeout: 5000, timeoutMsg: 'Tab did not add the tag' });
-	});
+	}, 0));
 
-	it('Enter without a move closes the box and makes a new line, and a task list continues', async function () {
+	it('Enter without a move closes the box and makes a new line, and a task list continues', logged(async function () {
 		await openHost('Start\n- [ ] call Bob ', false);
 		await typeText('#book ');
 		await waitItems(['#fiction', '#novel', '#history', '#Reading']);
@@ -160,79 +209,95 @@ describe('Tag Pairings in the real app', function () {
 		);
 		await browser.pause(300);
 		expect(await items()).toEqual([]);
-	});
+	}, 0));
 
-	it('the capability runs on the platform that it asks for (desktop, or the mobile emulation)', async function () {
+	it('the capability runs on the platform that it asks for (desktop, or the mobile emulation)', logged(async function () {
 		const opts = (browser.requestedCapabilities as { 'wdio:obsidianOptions'?: { emulateMobile?: boolean } })['wdio:obsidianOptions'];
 		const mobile = await browser.executeObsidian(({ obsidian }) => obsidian.Platform.isMobile);
 		console.log(`PLATFORM isMobile ${String(mobile)}`);
 		expect(mobile).toBe(opts?.emulateMobile === true);
-	});
+	}, 0));
 
-	it('Tab in a list item without a move closes the box and indents the item, and adds no tag', async function () {
-		await openHost('Start\n- first\n- buy milk ', false);
-		await typeText('#book ');
-		await waitItems(['#fiction', '#novel', '#history', '#Reading']);
-		await browser.keys('Tab');
-		await browser.waitUntil(async () => /^(\t| {2,4})- buy milk #book $/u.test(await lastLine()), {
-			timeout: 5000,
-			timeoutMsg: 'Tab did not indent the list item',
-		});
-		const text = await browser.executeObsidian(({ app }) => app.workspace.activeEditor?.editor?.getValue() ?? '');
-		expect(text.split('\n').slice(0, 2)).toEqual(['Start', '- first']);
-		expect(text).not.toContain('#fiction');
-		await browser.keys('Escape');
-		await resetHost();
-	});
-
-	it('Enter without a move in a plain list item makes a new list item', async function () {
-		await openHost('Start\n- first\n- buy milk ', false);
-		await typeText('#book ');
-		await waitItems(['#fiction', '#novel', '#history', '#Reading']);
-		await browser.keys('Enter');
-		let value = '';
-		await browser
-			.waitUntil(
-				async () => {
-					value = (await browser.executeObsidian(({ app }) => app.workspace.activeEditor?.editor?.getValue())) ?? '';
-					return value === 'Start\n- first\n- buy milk #book \n- ';
-				},
-				{ timeout: 5000 },
-			)
-			.catch(() => {
-				throw new Error(`Enter did not make a new list item: ${JSON.stringify(value)}`);
+	it('Tab in a list item without a move indents the item and adds no tag; the box then shows again for the same tag', logged(async function () {
+		try {
+			await openHost('Start\n- first\n- buy milk ', false);
+			await typeText('#book ');
+			await waitItems(['#fiction', '#novel', '#history', '#Reading']);
+			await browser.keys('Tab');
+			await browser.waitUntil(async () => /^(\t| {2,4})- buy milk #book $/u.test(await lastLine()), {
+				timeout: 5000,
+				timeoutMsg: 'Tab did not indent the list item',
 			});
-		await resetHost();
-	});
+			const text = await browser.executeObsidian(({ app }) => app.workspace.activeEditor?.editor?.getValue() ?? '');
+			expect(text.split('\n').slice(0, 2)).toEqual(['Start', '- first']);
+			expect(text).not.toContain('#fiction');
+			// Tab closes the box and the editor indents the item. The indent is an edit by the user, so Obsidian runs the
+			// trigger again: the box shows again for "#book " on the indented line, with no move.
+			await waitItems(['#fiction', '#novel', '#history', '#Reading']);
+			await browser.keys('Escape');
+			await browser.pause(300);
+			expect(await items()).toEqual([]);
+		} finally {
+			await browser.keys('Escape');
+			await resetHost();
+		}
+	}, 0));
 
-	it('Tab in a list item after Down adds the highlighted tag', async function () {
-		await openHost('Start\n- first\n- buy milk ', false);
-		await typeText('#book ');
-		await waitItems(['#fiction', '#novel', '#history', '#Reading']);
-		await browser.keys('ArrowDown');
-		await browser.keys('Tab');
-		await browser.waitUntil(async () => (await lastLine()) === '- buy milk #book #novel ', { timeout: 5000, timeoutMsg: 'Tab after Down did not add the tag' });
-		await browser.keys('Escape');
-		await resetHost();
-	});
+	it('Enter without a move in a plain list item makes a new list item', logged(async function () {
+		try {
+			await openHost('Start\n- first\n- buy milk ', false);
+			await typeText('#book ');
+			await waitItems(['#fiction', '#novel', '#history', '#Reading']);
+			await browser.keys('Enter');
+			let value = '';
+			await browser
+				.waitUntil(
+					async () => {
+						value = (await browser.executeObsidian(({ app }) => app.workspace.activeEditor?.editor?.getValue())) ?? '';
+						return value === 'Start\n- first\n- buy milk #book \n- ';
+					},
+					{ timeout: 5000 },
+				)
+				.catch(() => {
+					throw new Error(`Enter did not make a new list item: ${JSON.stringify(value)}`);
+				});
+		} finally {
+			await browser.keys('Escape');
+			await resetHost();
+		}
+	}, 0));
 
-	it('criterion 9: Source mode gives the same box', async function () {
+	it('Tab in a list item after Down adds the highlighted tag', logged(async function () {
+		try {
+			await openHost('Start\n- first\n- buy milk ', false);
+			await typeText('#book ');
+			await waitItems(['#fiction', '#novel', '#history', '#Reading']);
+			await browser.keys('ArrowDown');
+			await browser.keys('Tab');
+			await browser.waitUntil(async () => (await lastLine()) === '- buy milk #book #novel ', { timeout: 5000, timeoutMsg: 'Tab after Down did not add the tag' });
+		} finally {
+			await browser.keys('Escape');
+			await resetHost();
+		}
+	}, 0));
+
+	it('criterion 9: Source mode gives the same box', logged(async function () {
 		await openHost('Start\n', true);
 		await typeText('#book ');
 		await waitItems(['#fiction', '#novel', '#history', '#Reading']);
 		await browser.keys(['Shift', 'Enter']);
 		await browser.waitUntil(async () => (await lastLine()) === '#book #fiction ', { timeout: 5000, timeoutMsg: 'the tag was not inserted in Source mode' });
-	});
+	}, 0));
 
-	it('criterion 10: an unknown tag gives no box', async function () {
+	it('criterion 10: an unknown tag gives no box', logged(async function () {
 		await openHost('Start\n', false);
 		await typeText('#nosuchtag ');
 		await browser.pause(400);
 		expect(await items()).toEqual([]);
 		expect(await lastLine()).toBe('#nosuchtag ');
-	});
+	}, 0));
 
-	it('criterion 11: no box inside a fenced code block, and code is not counted', async function () {
+	it('criterion 11: no box inside a fenced code block, and code is not counted', logged(async function () {
 		await openHost('Start\n```\n', false);
 		await typeText('#book ');
 		await browser.pause(400);
@@ -242,9 +307,9 @@ describe('Tag Pairings in the real app', function () {
 			return p.index!.rank('book').map((x) => x.tag);
 		}, pluginId);
 		expect(ranked).not.toContain('fakecode');
-	});
+	}, 0));
 
-	it('edit after create: a changed note changes the rank', async function () {
+	it('edit after create: a changed note changes the rank', logged(async function () {
 		await obsidianPage.write('Pairs/D.md', '#book #history #fiction\n');
 		await browser.waitUntil(
 			async () =>
@@ -265,9 +330,9 @@ describe('Tag Pairings in the real app', function () {
 			await obsidianPage.write('Pairs/D.md', '#book #history\n');
 			await resetHost();
 		}
-	});
+	}, 0));
 
-	it('rename and delete keep the index right', async function () {
+	it('rename and delete keep the index right', logged(async function () {
 		const r = await browser.executeObsidian(async ({ app }, id) => {
 			const p = (app as unknown as { plugins: { plugins: Record<string, PluginShape> } }).plugins.plugins[id]!;
 			const f = app.vault.getFileByPath('Pairs/C.md')!;
@@ -284,9 +349,9 @@ describe('Tag Pairings in the real app', function () {
 		expect(r.afterRename).toEqual(['fiction', 'novel', 'history', 'reading']);
 		expect(r.afterDelete).toEqual(['novel', 'fiction', 'history']);
 		await seed();
-	});
+	}, 0));
 
-	it('a large note: the trigger check on a 10,000 line note stays fast', async function () {
+	it('a large note: the trigger check on a 10,000 line note stays fast', logged(async function () {
 		const big = Array.from({ length: 10000 }, (_, i) => `Line ${i} with some words and #t${i % 50}x`).join('\n') + '\n#book ';
 		await obsidianPage.write('Big.md', big);
 		await obsidianPage.openFile('Big.md');
@@ -313,9 +378,9 @@ describe('Tag Pairings in the real app', function () {
 			const f = app.vault.getFileByPath('Big.md');
 			if (f) await app.vault.delete(f);
 		});
-	});
+	}, 0));
 
-	it('criterion 12: unload removes the box; reload logs no errors', async function () {
+	it('criterion 12: unload removes the box; reload logs no errors', logged(async function () {
 		await browser.executeObsidian(async ({ app }, id) => {
 			await (app as unknown as { plugins: { disablePlugin(id: string): Promise<void> } }).plugins.disablePlugin(id);
 		}, pluginId);
@@ -337,5 +402,5 @@ describe('Tag Pairings in the real app', function () {
 				}, pluginId),
 			{ timeout: 10000, interval: 100, timeoutMsg: 'the rebuilt index has no tag from the edit made while off' },
 		);
-	});
+	}, 0));
 });

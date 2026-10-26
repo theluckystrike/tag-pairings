@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import vectors from './vectors/tag-pairings.json';
-import { ancestors, lineTags, rankPairs, triggerAt } from '../src/pairs';
+import { ancestors, isListItem, lineTags, rankPairs, triggerAt } from '../src/pairs';
 
-const fns: Record<string, (...args: never[]) => unknown> = { rankPairs, triggerAt, lineTags, ancestors };
+const fns: Record<string, (...args: never[]) => unknown> = { rankPairs, triggerAt, lineTags, ancestors, isListItem };
 
 describe('golden vectors (packages/spec/vectors/tag-pairings.json)', () => {
 	it('covers acceptance criteria 1 to 5', () => {

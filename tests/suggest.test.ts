@@ -124,7 +124,7 @@ describe('PairSuggest keys', () => {
 	});
 
 	it('Tab on a list item line passes to the editor until Up or Down moved the highlight', () => {
-		for (const line of ['- buy milk #book ', '- [ ] call Bob #book ', '\t* nested #book ', '1. first #book ', '2) second #book ']) {
+		for (const line of ['- buy milk #book ', '- [ ] call Bob #book ', '\t* nested #book ', '1. first #book ', '2) second #book ', '> - quoted #book ', '> > - callout #book ']) {
 			const s = setup(line);
 			open(s);
 			// No move: the box closes and the editor gets the Tab (it indents the item).
