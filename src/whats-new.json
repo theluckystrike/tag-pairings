@@ -1,0 +1,25 @@
+{
+	"id": "tag-pairings",
+	"name": "Tag Pairings",
+	"version": "1.0.0",
+	"changes": [],
+	"tip": "Type a tag and a space to see related tags. Shift+Enter or Tab adds one, and the list opens again. Enter adds a tag only after Up or Down.",
+	"thanks": "Hi, I am Michael, a solo developer in Poland. Tag Pairings is one of over 100 small plugins that I make. Thank you for trusting it with your notes.",
+	"related": [
+		{
+			"id": "tag-properties",
+			"name": "Tag Properties",
+			"blurb": "Browse custom list properties as clickable tags with note counts."
+		},
+		{
+			"id": "search-operators",
+			"name": "Search Operators",
+			"blurb": "Search notes by date, links, tag and path in one modal."
+		},
+		{
+			"id": "inline-block-embeds",
+			"name": "Inline Block Embeds",
+			"blurb": "Show a block embed inside a sentence as inline text."
+		}
+	]
+}

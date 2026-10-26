@@ -1,0 +1,1069 @@
+{
+ "slug": "tag-pairings",
+ "module": "tag-pairings/src/pairs",
+ "function": "rankPairs",
+ "note": "Each case names its function in fn: rankPairs(notes, anchor, exclude, linked, limit, folder) gives the suggested tags best first; triggerAt(text, line, ch) gives the anchor or null; lineTags(line) gives the tag keys of one line; ancestors(key) gives the parents of a nested tag. Names that start with a number are acceptance criteria 1 to 5 of lanes/B7/SPEC.md. Reviewed by hand against each input.",
+ "cases": [
+  {
+   "name": "1 rank by shared notes, ties by total notes then name",
+   "fn": "rankPairs",
+   "args": [
+    {
+     "A.md": [
+      "book",
+      "novel",
+      "fiction"
+     ],
+     "B.md": [
+      "book",
+      "novel"
+     ],
+     "C.md": [
+      "#book",
+      "fiction",
+      "Reading"
+     ],
+     "D.md": [
+      "book",
+      "history"
+     ],
+     "E.md": [
+      "novel",
+      "fiction"
+     ],
+     "F.md": [
+      "Project/Alpha",
+      "work"
+     ],
+     "G.md": [
+      "project/beta",
+      "work",
+      "urgent"
+     ],
+     "H.md": [
+      "project",
+      "meeting"
+     ],
+     "I.md": [
+      "project",
+      "project/alpha",
+      "idea"
+     ]
+    },
+    "book"
+   ],
+   "expected": [
+    {
+     "tag": "fiction",
+     "display": "fiction",
+     "count": 2
+    },
+    {
+     "tag": "novel",
+     "display": "novel",
+     "count": 2
+    },
+    {
+     "tag": "history",
+     "display": "history",
+     "count": 1
+    },
+    {
+     "tag": "reading",
+     "display": "Reading",
+     "count": 1
+    }
+   ]
+  },
+  {
+   "name": "1 a linked note breaks a tie",
+   "fn": "rankPairs",
+   "args": [
+    {
+     "A.md": [
+      "book",
+      "novel",
+      "fiction"
+     ],
+     "B.md": [
+      "book",
+      "novel"
+     ],
+     "C.md": [
+      "#book",
+      "fiction",
+      "Reading"
+     ],
+     "D.md": [
+      "book",
+      "history"
+     ],
+     "E.md": [
+      "novel",
+      "fiction"
+     ],
+     "F.md": [
+      "Project/Alpha",
+      "work"
+     ],
+     "G.md": [
+      "project/beta",
+      "work",
+      "urgent"
+     ],
+     "H.md": [
+      "project",
+      "meeting"
+     ],
+     "I.md": [
+      "project",
+      "project/alpha",
+      "idea"
+     ]
+    },
+    "book",
+    [],
+    [
+     "B.md"
+    ]
+   ],
+   "expected": [
+    {
+     "tag": "novel",
+     "display": "novel",
+     "count": 2
+    },
+    {
+     "tag": "fiction",
+     "display": "fiction",
+     "count": 2
+    },
+    {
+     "tag": "history",
+     "display": "history",
+     "count": 1
+    },
+    {
+     "tag": "reading",
+     "display": "Reading",
+     "count": 1
+    }
+   ]
+  },
+  {
+   "name": "1 anchor case is ignored",
+   "fn": "rankPairs",
+   "args": [
+    {
+     "A.md": [
+      "book",
+      "novel",
+      "fiction"
+     ],
+     "B.md": [
+      "book",
+      "novel"
+     ],
+     "C.md": [
+      "#book",
+      "fiction",
+      "Reading"
+     ],
+     "D.md": [
+      "book",
+      "history"
+     ],
+     "E.md": [
+      "novel",
+      "fiction"
+     ],
+     "F.md": [
+      "Project/Alpha",
+      "work"
+     ],
+     "G.md": [
+      "project/beta",
+      "work",
+      "urgent"
+     ],
+     "H.md": [
+      "project",
+      "meeting"
+     ],
+     "I.md": [
+      "project",
+      "project/alpha",
+      "idea"
+     ]
+    },
+    "#BOOK"
+   ],
+   "expected": [
+    {
+     "tag": "fiction",
+     "display": "fiction",
+     "count": 2
+    },
+    {
+     "tag": "novel",
+     "display": "novel",
+     "count": 2
+    },
+    {
+     "tag": "history",
+     "display": "history",
+     "count": 1
+    },
+    {
+     "tag": "reading",
+     "display": "Reading",
+     "count": 1
+    }
+   ]
+  },
+  {
+   "name": "1 total notes break a tie before name",
+   "fn": "rankPairs",
+   "args": [
+    {
+     "A.md": [
+      "book",
+      "novel",
+      "fiction"
+     ],
+     "B.md": [
+      "book",
+      "novel"
+     ],
+     "C.md": [
+      "#book",
+      "fiction",
+      "Reading"
+     ],
+     "D.md": [
+      "book",
+      "history"
+     ],
+     "E.md": [
+      "novel",
+      "fiction"
+     ],
+     "F.md": [
+      "Project/Alpha",
+      "work"
+     ],
+     "G.md": [
+      "project/beta",
+      "work",
+      "urgent"
+     ],
+     "H.md": [
+      "project",
+      "meeting"
+     ],
+     "I.md": [
+      "project",
+      "project/alpha",
+      "idea"
+     ]
+    },
+    "fiction"
+   ],
+   "expected": [
+    {
+     "tag": "book",
+     "display": "book",
+     "count": 2
+    },
+    {
+     "tag": "novel",
+     "display": "novel",
+     "count": 2
+    },
+    {
+     "tag": "reading",
+     "display": "Reading",
+     "count": 1
+    }
+   ]
+  },
+  {
+   "name": "1 limit cuts the list",
+   "fn": "rankPairs",
+   "args": [
+    {
+     "A.md": [
+      "book",
+      "novel",
+      "fiction"
+     ],
+     "B.md": [
+      "book",
+      "novel"
+     ],
+     "C.md": [
+      "#book",
+      "fiction",
+      "Reading"
+     ],
+     "D.md": [
+      "book",
+      "history"
+     ],
+     "E.md": [
+      "novel",
+      "fiction"
+     ],
+     "F.md": [
+      "Project/Alpha",
+      "work"
+     ],
+     "G.md": [
+      "project/beta",
+      "work",
+      "urgent"
+     ],
+     "H.md": [
+      "project",
+      "meeting"
+     ],
+     "I.md": [
+      "project",
+      "project/alpha",
+      "idea"
+     ]
+    },
+    "book",
+    [],
+    [],
+    2
+   ],
+   "expected": [
+    {
+     "tag": "fiction",
+     "display": "fiction",
+     "count": 2
+    },
+    {
+     "tag": "novel",
+     "display": "novel",
+     "count": 2
+    }
+   ]
+  },
+  {
+   "name": "2 unknown anchor gives no tags",
+   "fn": "rankPairs",
+   "args": [
+    {
+     "A.md": [
+      "book",
+      "novel",
+      "fiction"
+     ],
+     "B.md": [
+      "book",
+      "novel"
+     ],
+     "C.md": [
+      "#book",
+      "fiction",
+      "Reading"
+     ],
+     "D.md": [
+      "book",
+      "history"
+     ],
+     "E.md": [
+      "novel",
+      "fiction"
+     ],
+     "F.md": [
+      "Project/Alpha",
+      "work"
+     ],
+     "G.md": [
+      "project/beta",
+      "work",
+      "urgent"
+     ],
+     "H.md": [
+      "project",
+      "meeting"
+     ],
+     "I.md": [
+      "project",
+      "project/alpha",
+      "idea"
+     ]
+    },
+    "nothing"
+   ],
+   "expected": []
+  },
+  {
+   "name": "2 anchor alone in its notes gives no tags",
+   "fn": "rankPairs",
+   "args": [
+    {
+     "A.md": [
+      "solo"
+     ],
+     "B.md": [
+      "solo"
+     ]
+    },
+    "solo"
+   ],
+   "expected": []
+  },
+  {
+   "name": "3 tags of the note and line are excluded",
+   "fn": "rankPairs",
+   "args": [
+    {
+     "A.md": [
+      "book",
+      "novel",
+      "fiction"
+     ],
+     "B.md": [
+      "book",
+      "novel"
+     ],
+     "C.md": [
+      "#book",
+      "fiction",
+      "Reading"
+     ],
+     "D.md": [
+      "book",
+      "history"
+     ],
+     "E.md": [
+      "novel",
+      "fiction"
+     ],
+     "F.md": [
+      "Project/Alpha",
+      "work"
+     ],
+     "G.md": [
+      "project/beta",
+      "work",
+      "urgent"
+     ],
+     "H.md": [
+      "project",
+      "meeting"
+     ],
+     "I.md": [
+      "project",
+      "project/alpha",
+      "idea"
+     ]
+    },
+    "book",
+    [
+     "novel",
+     "#History"
+    ]
+   ],
+   "expected": [
+    {
+     "tag": "fiction",
+     "display": "fiction",
+     "count": 2
+    },
+    {
+     "tag": "reading",
+     "display": "Reading",
+     "count": 1
+    }
+   ]
+  },
+  {
+   "name": "4 parent anchor counts notes with nested tags",
+   "fn": "rankPairs",
+   "args": [
+    {
+     "A.md": [
+      "book",
+      "novel",
+      "fiction"
+     ],
+     "B.md": [
+      "book",
+      "novel"
+     ],
+     "C.md": [
+      "#book",
+      "fiction",
+      "Reading"
+     ],
+     "D.md": [
+      "book",
+      "history"
+     ],
+     "E.md": [
+      "novel",
+      "fiction"
+     ],
+     "F.md": [
+      "Project/Alpha",
+      "work"
+     ],
+     "G.md": [
+      "project/beta",
+      "work",
+      "urgent"
+     ],
+     "H.md": [
+      "project",
+      "meeting"
+     ],
+     "I.md": [
+      "project",
+      "project/alpha",
+      "idea"
+     ]
+    },
+    "project"
+   ],
+   "expected": [
+    {
+     "tag": "project/alpha",
+     "display": "Project/Alpha",
+     "count": 2
+    },
+    {
+     "tag": "work",
+     "display": "work",
+     "count": 2
+    },
+    {
+     "tag": "idea",
+     "display": "idea",
+     "count": 1
+    },
+    {
+     "tag": "meeting",
+     "display": "meeting",
+     "count": 1
+    },
+    {
+     "tag": "project/beta",
+     "display": "project/beta",
+     "count": 1
+    },
+    {
+     "tag": "urgent",
+     "display": "urgent",
+     "count": 1
+    }
+   ]
+  },
+  {
+   "name": "4 parent of the anchor is never suggested",
+   "fn": "rankPairs",
+   "args": [
+    {
+     "A.md": [
+      "book",
+      "novel",
+      "fiction"
+     ],
+     "B.md": [
+      "book",
+      "novel"
+     ],
+     "C.md": [
+      "#book",
+      "fiction",
+      "Reading"
+     ],
+     "D.md": [
+      "book",
+      "history"
+     ],
+     "E.md": [
+      "novel",
+      "fiction"
+     ],
+     "F.md": [
+      "Project/Alpha",
+      "work"
+     ],
+     "G.md": [
+      "project/beta",
+      "work",
+      "urgent"
+     ],
+     "H.md": [
+      "project",
+      "meeting"
+     ],
+     "I.md": [
+      "project",
+      "project/alpha",
+      "idea"
+     ]
+    },
+    "project/alpha"
+   ],
+   "expected": [
+    {
+     "tag": "work",
+     "display": "work",
+     "count": 1
+    },
+    {
+     "tag": "idea",
+     "display": "idea",
+     "count": 1
+    }
+   ]
+  },
+  {
+   "name": "1 Pro folder scope counts only notes in the folder",
+   "fn": "rankPairs",
+   "args": [
+    {
+     "Lib/A.md": [
+      "book",
+      "novel"
+     ],
+     "Lib/B.md": [
+      "book",
+      "novel"
+     ],
+     "Other/C.md": [
+      "book",
+      "fiction"
+     ],
+     "Other/D.md": [
+      "book",
+      "fiction"
+     ],
+     "Other/E.md": [
+      "book",
+      "fiction"
+     ]
+    },
+    "book",
+    [],
+    [],
+    20,
+    "Lib"
+   ],
+   "expected": [
+    {
+     "tag": "novel",
+     "display": "novel",
+     "count": 2
+    }
+   ]
+  },
+  {
+   "name": "1 without scope the whole vault counts",
+   "fn": "rankPairs",
+   "args": [
+    {
+     "Lib/A.md": [
+      "book",
+      "novel"
+     ],
+     "Lib/B.md": [
+      "book",
+      "novel"
+     ],
+     "Other/C.md": [
+      "book",
+      "fiction"
+     ],
+     "Other/D.md": [
+      "book",
+      "fiction"
+     ],
+     "Other/E.md": [
+      "book",
+      "fiction"
+     ]
+    },
+    "book"
+   ],
+   "expected": [
+    {
+     "tag": "fiction",
+     "display": "fiction",
+     "count": 3
+    },
+    {
+     "tag": "novel",
+     "display": "novel",
+     "count": 2
+    }
+   ]
+  },
+  {
+   "name": "5 tag and one space triggers",
+   "fn": "triggerAt",
+   "args": [
+    "Read #book ",
+    0,
+    11
+   ],
+   "expected": {
+    "anchor": "book",
+    "display": "book",
+    "from": 5
+   }
+  },
+  {
+   "name": "5 casing is kept for display",
+   "fn": "triggerAt",
+   "args": [
+    "Read #Book ",
+    0,
+    11
+   ],
+   "expected": {
+    "anchor": "book",
+    "display": "Book",
+    "from": 5
+   }
+  },
+  {
+   "name": "5 tag at line start triggers",
+   "fn": "triggerAt",
+   "args": [
+    "#book ",
+    0,
+    6
+   ],
+   "expected": {
+    "anchor": "book",
+    "display": "book",
+    "from": 0
+   }
+  },
+  {
+   "name": "5 nested tag triggers",
+   "fn": "triggerAt",
+   "args": [
+    "#project/alpha ",
+    0,
+    15
+   ],
+   "expected": {
+    "anchor": "project/alpha",
+    "display": "project/alpha",
+    "from": 0
+   }
+  },
+  {
+   "name": "5 no space gives no trigger",
+   "fn": "triggerAt",
+   "args": [
+    "Read #book",
+    0,
+    10
+   ],
+   "expected": null
+  },
+  {
+   "name": "5 two spaces give no trigger",
+   "fn": "triggerAt",
+   "args": [
+    "#book  ",
+    0,
+    7
+   ],
+   "expected": null
+  },
+  {
+   "name": "5 hash inside a word gives no trigger",
+   "fn": "triggerAt",
+   "args": [
+    "a#book ",
+    0,
+    7
+   ],
+   "expected": null
+  },
+  {
+   "name": "5 hash in a wikilink gives no trigger",
+   "fn": "triggerAt",
+   "args": [
+    "[[a#b ",
+    0,
+    6
+   ],
+   "expected": null
+  },
+  {
+   "name": "5 inline code gives no trigger",
+   "fn": "triggerAt",
+   "args": [
+    "Use `#book ",
+    0,
+    11
+   ],
+   "expected": null
+  },
+  {
+   "name": "5 number only tag gives no trigger",
+   "fn": "triggerAt",
+   "args": [
+    "#123 ",
+    0,
+    5
+   ],
+   "expected": null
+  },
+  {
+   "name": "5 heading mark gives no trigger",
+   "fn": "triggerAt",
+   "args": [
+    "# Heading ",
+    0,
+    10
+   ],
+   "expected": null
+  },
+  {
+   "name": "5 punctuation after tag gives no trigger",
+   "fn": "triggerAt",
+   "args": [
+    "Text #book, ",
+    0,
+    12
+   ],
+   "expected": null
+  },
+  {
+   "name": "5 trailing slash gives no trigger",
+   "fn": "triggerAt",
+   "args": [
+    "#tag/ ",
+    0,
+    6
+   ],
+   "expected": null
+  },
+  {
+   "name": "5 fenced code block gives no trigger",
+   "fn": "triggerAt",
+   "args": [
+    "```\n#book \n```",
+    1,
+    6
+   ],
+   "expected": null
+  },
+  {
+   "name": "5 after a closed fence triggers",
+   "fn": "triggerAt",
+   "args": [
+    "```\ncode\n```\n#book ",
+    3,
+    6
+   ],
+   "expected": {
+    "anchor": "book",
+    "display": "book",
+    "from": 0
+   }
+  },
+  {
+   "name": "5 tilde fence gives no trigger",
+   "fn": "triggerAt",
+   "args": [
+    "~~~js\n#book \n~~~",
+    1,
+    6
+   ],
+   "expected": null
+  },
+  {
+   "name": "5 front matter gives no trigger",
+   "fn": "triggerAt",
+   "args": [
+    "---\ntags: x\n#book \n---",
+    2,
+    6
+   ],
+   "expected": null
+  },
+  {
+   "name": "5 after front matter triggers",
+   "fn": "triggerAt",
+   "args": [
+    "---\ntags: x\n---\n#book ",
+    3,
+    6
+   ],
+   "expected": {
+    "anchor": "book",
+    "display": "book",
+    "from": 0
+   }
+  },
+  {
+   "name": "5 cursor in the middle of a line triggers",
+   "fn": "triggerAt",
+   "args": [
+    "See #book here",
+    0,
+    10
+   ],
+   "expected": {
+    "anchor": "book",
+    "display": "book",
+    "from": 4
+   }
+  },
+  {
+   "name": "3 line tags skip inline code and words",
+   "fn": "lineTags",
+   "args": [
+    "Read #book and #Novel, `#code` x#no"
+   ],
+   "expected": [
+    "book",
+    "novel"
+   ]
+  },
+  {
+   "name": "4 ancestors of a nested tag",
+   "fn": "ancestors",
+   "args": [
+    "a/b/c"
+   ],
+   "expected": [
+    "a",
+    "a/b"
+   ]
+  },
+  {
+   "name": "5 info string fence line does not close a fence",
+   "fn": "triggerAt",
+   "args": [
+    "```\nx\n```js\n#book ",
+    3,
+    6
+   ],
+   "expected": null
+  },
+  {
+   "name": "5 indented code block gives no trigger",
+   "fn": "triggerAt",
+   "args": [
+    "para\n\n    #book ",
+    2,
+    10
+   ],
+   "expected": null
+  },
+  {
+   "name": "5 math block gives no trigger",
+   "fn": "triggerAt",
+   "args": [
+    "$$\n#book ",
+    1,
+    6
+   ],
+   "expected": null
+  },
+  {
+   "name": "5 comment block gives no trigger",
+   "fn": "triggerAt",
+   "args": [
+    "%%\n#book ",
+    1,
+    6
+   ],
+   "expected": null
+  },
+  {
+   "name": "5 inline comment gives no trigger",
+   "fn": "triggerAt",
+   "args": [
+    "%% note #book ",
+    0,
+    14
+   ],
+   "expected": null
+  },
+  {
+   "name": "5 note that starts with a rule and no closing triggers",
+   "fn": "triggerAt",
+   "args": [
+    "---\ntext\n#book ",
+    2,
+    6
+   ],
+   "expected": {
+    "anchor": "book",
+    "display": "book",
+    "from": 0
+   }
+  },
+  {
+   "name": "5 after a closed math block triggers",
+   "fn": "triggerAt",
+   "args": [
+    "$$\nx\n$$\n#book ",
+    3,
+    6
+   ],
+   "expected": {
+    "anchor": "book",
+    "display": "book",
+    "from": 0
+   }
+  },
+  {
+   "name": "5 tab indented list item after a blank line triggers",
+   "fn": "triggerAt",
+   "args": [
+    "- a\n\n\t- b #book ",
+    2,
+    11
+   ],
+   "expected": {
+    "anchor": "book",
+    "display": "book",
+    "from": 5
+   }
+  },
+  {
+   "name": "5 indented list continuation triggers",
+   "fn": "triggerAt",
+   "args": [
+    "- a\n\n    more #book ",
+    2,
+    15
+   ],
+   "expected": {
+    "anchor": "book",
+    "display": "book",
+    "from": 9
+   }
+  },
+  {
+   "name": "5 one line math does not open a block",
+   "fn": "triggerAt",
+   "args": [
+    "$$x$$\n#book ",
+    1,
+    6
+   ],
+   "expected": {
+    "anchor": "book",
+    "display": "book",
+    "from": 0
+   }
+  }
+ ]
+}

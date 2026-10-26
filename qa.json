@@ -1,0 +1,85 @@
+[
+	{
+		"feature": "suggest",
+		"caption": "Type #book and a space: the box lists the tags that occur most often with #book.",
+		"note": "Reading log.md",
+		"eval": "(async () => { document.querySelectorAll('.modal-container').forEach(el => el.remove()); const l=app.workspace.getLeaf(false); const s=l.getViewState(); await l.setViewState({...s,state:{...s.state,mode:'source',source:false}}); const e=l.view.editor; e.setValue('Finished Hyperion today. '); e.focus();const P=app.plugins.plugins['tag-pairings']; for (let i=0;i<60 && !(P.index && P.index.rank('book').length>=5);i++) await new Promise(r=>setTimeout(r,100));e.setCursor({line:0,ch:e.getLine(0).length}); e.replaceSelection('#book '); P.suggest.trigger(e, app.workspace.getActiveFile(), true); for (let i=0;i<40 && document.querySelectorAll('.suggestion-container .tag-pairings-item').length<5;i++) await new Promise(r=>setTimeout(r,100)); const n=document.querySelectorAll('.suggestion-container .tag-pairings-item').length; if (n<5) throw new Error('items '+n); const t=[...document.querySelectorAll('.suggestion-container .tag-pairings-tag')].map(x=>x.textContent).join(' '); if (!t.startsWith('#fiction #scifi #history #nonfiction')) throw new Error('order '+t); return t; })()",
+		"after": "(async () => { const p=app.plugins.plugins['tag-pairings']; p.suggest && p.suggest.close(); return 'ok'; })()",
+		"wait": 600,
+		"zoom": 1.3
+	},
+	{
+		"feature": "chain",
+		"caption": "Shift+Enter adds the tag and a space, and the box opens again for the tag just added.",
+		"note": "Reading log.md",
+		"eval": "(async () => { const l=app.workspace.getLeaf(false); const s=l.getViewState(); await l.setViewState({...s,state:{...s.state,mode:'source',source:false}}); const e=l.view.editor; e.setValue('Finished Hyperion today. '); e.focus();const P=app.plugins.plugins['tag-pairings']; for (let i=0;i<60 && !(P.index && P.index.rank('book').length>=5);i++) await new Promise(r=>setTimeout(r,100));e.setCursor({line:0,ch:e.getLine(0).length}); e.replaceSelection('#book '); P.suggest.trigger(e, app.workspace.getActiveFile(), true); for (let i=0;i<40 && document.querySelectorAll('.suggestion-container .tag-pairings-item').length<5;i++) await new Promise(r=>setTimeout(r,100)); const n=document.querySelectorAll('.suggestion-container .tag-pairings-item').length; if (n<5) throw new Error('items '+n);P.suggest.suggestions.useSelectedItem(new KeyboardEvent('keydown',{key:'Enter',shiftKey:true}));for (let i=0;i<40 && e.getLine(0)!==\"Finished Hyperion today. #book #fiction \";i++) await new Promise(r=>setTimeout(r,100)); if (e.getLine(0)!==\"Finished Hyperion today. #book #fiction \") throw new Error('line '+e.getLine(0)); for (let i=0;i<40 && document.querySelectorAll('.suggestion-container .tag-pairings-item').length<2;i++) await new Promise(r=>setTimeout(r,100)); const t=[...document.querySelectorAll('.suggestion-container .tag-pairings-tag')].map(x=>x.textContent).join(' '); if (!t.startsWith('#scifi')) throw new Error('chain '+t); return t; })()",
+		"after": "(async () => { const p=app.plugins.plugins['tag-pairings']; p.suggest && p.suggest.close(); return 'ok'; })()",
+		"wait": 600,
+		"zoom": 1.3
+	},
+	{
+		"feature": "nested",
+		"caption": "Nested tags: #project counts the notes with #project/launch and #project/hiring, from body and front matter.",
+		"note": "Reading log.md",
+		"eval": "(async () => { const l=app.workspace.getLeaf(false); const s=l.getViewState(); await l.setViewState({...s,state:{...s.state,mode:'source',source:false}}); const e=l.view.editor; e.setValue('Finished Hyperion today. '); e.focus();const P=app.plugins.plugins['tag-pairings']; for (let i=0;i<60 && !(P.index && P.index.rank('book').length>=5);i++) await new Promise(r=>setTimeout(r,100));e.setCursor({line:0,ch:e.getLine(0).length}); e.replaceSelection('#project '); P.suggest.trigger(e, app.workspace.getActiveFile(), true); for (let i=0;i<40 && document.querySelectorAll('.suggestion-container .tag-pairings-item').length<3;i++) await new Promise(r=>setTimeout(r,100)); const n=document.querySelectorAll('.suggestion-container .tag-pairings-item').length; if (n<3) throw new Error('items '+n); const t=[...document.querySelectorAll('.suggestion-container .tag-pairings-tag')].map(x=>x.textContent).join(' '); if (!t.startsWith('#work')) throw new Error('nested '+t); return t; })()",
+		"after": "(async () => { const p=app.plugins.plugins['tag-pairings']; p.suggest && p.suggest.close(); return 'ok'; })()",
+		"wait": 600,
+		"zoom": 1.3
+	},
+	{
+		"feature": "source-mode",
+		"caption": "Source mode shows the same box.",
+		"note": "Reading log.md",
+		"eval": "(async () => { const l=app.workspace.getLeaf(false); const s=l.getViewState(); await l.setViewState({...s,state:{...s.state,mode:'source',source:true}}); const e=l.view.editor; e.setValue('Finished Hyperion today. '); e.focus();const P=app.plugins.plugins['tag-pairings']; for (let i=0;i<60 && !(P.index && P.index.rank('book').length>=5);i++) await new Promise(r=>setTimeout(r,100));e.setCursor({line:0,ch:e.getLine(0).length}); e.replaceSelection('#history '); P.suggest.trigger(e, app.workspace.getActiveFile(), true); for (let i=0;i<40 && document.querySelectorAll('.suggestion-container .tag-pairings-item').length<2;i++) await new Promise(r=>setTimeout(r,100)); const n=document.querySelectorAll('.suggestion-container .tag-pairings-item').length; if (n<2) throw new Error('items '+n); return 'ok'; })()",
+		"after": "(async () => { const p=app.plugins.plugins['tag-pairings']; p.suggest && p.suggest.close(); return 'ok'; })()",
+		"wait": 600,
+		"zoom": 1.3
+	},
+	{
+		"feature": "counts",
+		"caption": "Pro: the count of shared notes next to each tag.",
+		"note": "Reading log.md",
+		"eval": "(async () => { const p=app.plugins.plugins['tag-pairings']; p.pro.opts.http = async () => ({ status: 200, json: { data: { viewer: { login: 'demo-reader' }, user: { sponsorshipForViewerAsSponsor: { isActive: true, isOneTimePayment: false, tier: { name: '$5 a month', monthlyPriceInCents: 500 } } } } } }); app.secretStorage.setSecret('tag-pairings-github-token', 'gho_' + '0'.repeat(36)); await p.pro.refreshNow(); p.settings.showCounts=true; const l=app.workspace.getLeaf(false); const s=l.getViewState(); await l.setViewState({...s,state:{...s.state,mode:'source',source:false}}); const e=l.view.editor; e.setValue('Finished Hyperion today. '); e.focus();const P=app.plugins.plugins['tag-pairings']; for (let i=0;i<60 && !(P.index && P.index.rank('book').length>=5);i++) await new Promise(r=>setTimeout(r,100));e.setCursor({line:0,ch:e.getLine(0).length}); e.replaceSelection('#book '); P.suggest.trigger(e, app.workspace.getActiveFile(), true); for (let i=0;i<40 && document.querySelectorAll('.suggestion-container .tag-pairings-item').length<5;i++) await new Promise(r=>setTimeout(r,100)); const n=document.querySelectorAll('.suggestion-container .tag-pairings-item').length; if (n<5) throw new Error('items '+n); if (!document.querySelector('.suggestion-container .tag-pairings-count')) throw new Error('no counts'); return 'ok'; })()",
+		"after": "(async () => { const p=app.plugins.plugins['tag-pairings']; p.suggest && p.suggest.close(); p.settings.showCounts=false; p.settings.folderScope=false; p.settings.limit=20; p.pro.signOut(); return 'ok'; })()",
+		"wait": 600,
+		"zoom": 1.3
+	},
+	{
+		"feature": "settings",
+		"caption": "The settings: counts, folder scope and list length (Pro).",
+		"eval": "(async () => { app.setting.open(); app.setting.openTabById('tag-pairings'); await new Promise(r => setTimeout(r, 800)); return 'ok'; })()",
+		"after": "(async () => { app.setting.close(); return 'ok'; })()",
+		"wait": 700
+	},
+	{
+		"feature": "tag-pairings",
+		"caption": "Type one tag, then press Shift+Enter two times to add two related tags.",
+		"frames": [
+			{
+				"note": "Reading log.md",
+				"eval": "(async () => { document.querySelectorAll('.modal-container').forEach(el => el.remove()); const l=app.workspace.getLeaf(false); const s=l.getViewState(); await l.setViewState({...s,state:{...s.state,mode:'source',source:false}}); const e=l.view.editor; e.setValue('Finished Hyperion today. '); e.focus();const P=app.plugins.plugins['tag-pairings']; for (let i=0;i<60 && !(P.index && P.index.rank('book').length>=5);i++) await new Promise(r=>setTimeout(r,100)); e.setCursor({line:0,ch:e.getLine(0).length}); return 'start'; })()",
+				"wait": 400,
+				"hold": 1600,
+				"zoom": 1.3
+			},
+			{
+				"eval": "(async () => { const e=app.workspace.activeEditor.editor; const P=app.plugins.plugins['tag-pairings']; e.focus(); e.setCursor({line:0,ch:e.getLine(0).length}); e.replaceSelection('#book '); P.suggest.trigger(e, app.workspace.getActiveFile(), true); for (let i=0;i<40 && document.querySelectorAll('.suggestion-container .tag-pairings-item').length<5;i++) await new Promise(r=>setTimeout(r,100)); const n=document.querySelectorAll('.suggestion-container .tag-pairings-item').length; if (n<5) throw new Error('items '+n); return 'box'; })()",
+				"wait": 400,
+				"hold": 2200,
+				"zoom": 1.3
+			},
+			{
+				"eval": "(async () => { const e=app.workspace.activeEditor.editor; const P=app.plugins.plugins['tag-pairings']; P.suggest.suggestions.useSelectedItem(new KeyboardEvent('keydown',{key:'Enter',shiftKey:true}));for (let i=0;i<40 && e.getLine(0)!==\"Finished Hyperion today. #book #fiction \";i++) await new Promise(r=>setTimeout(r,100)); if (e.getLine(0)!==\"Finished Hyperion today. #book #fiction \") throw new Error('line '+e.getLine(0)); for (let i=0;i<40 && !document.querySelector('.suggestion-container .tag-pairings-item');i++) await new Promise(r=>setTimeout(r,100)); return 'one'; })()",
+				"wait": 400,
+				"hold": 2200,
+				"zoom": 1.3
+			},
+			{
+				"eval": "(async () => { const e=app.workspace.activeEditor.editor; const P=app.plugins.plugins['tag-pairings']; P.suggest.suggestions.useSelectedItem(new KeyboardEvent('keydown',{key:'Enter',shiftKey:true}));for (let i=0;i<40 && e.getLine(0)!==\"Finished Hyperion today. #book #fiction #scifi \";i++) await new Promise(r=>setTimeout(r,100)); if (e.getLine(0)!==\"Finished Hyperion today. #book #fiction #scifi \") throw new Error('line '+e.getLine(0)); return 'two'; })()",
+				"wait": 400,
+				"hold": 2400,
+				"zoom": 1.3
+			}
+		]
+	}
+]
