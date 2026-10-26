@@ -1,6 +1,6 @@
 {
 	"name": "tag-pairings",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"private": true,
 	"description": "After you type a tag, suggests the tags that occur most often with it in your vault.",
 	"main": "main.js",

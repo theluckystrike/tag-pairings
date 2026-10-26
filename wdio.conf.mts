@@ -34,15 +34,34 @@ export const config: WebdriverIO.Config = {
 	framework: 'mocha',
 	specs: ['./test/e2e/**/*.e2e.ts'],
 	maxInstances: Number(process.env.WDIO_MAX_INSTANCES ?? 1),
-	capabilities: versions.map(([appVersion, installerVersion]) => ({
-		browserName: 'obsidian',
-		browserVersion: appVersion,
-		'wdio:obsidianOptions': {
-			installerVersion,
-			plugins: ['.'],
-			vault: 'test/e2e/vault',
-		},
-	})),
+	// One desktop capability for each version, then a third one: the latest app with the mobile emulation of Obsidian
+	// (app.emulateMobile(true)) at phone size. Emulation is not a real phone.
+	capabilities: [
+		...versions.map(([appVersion, installerVersion]) => ({
+			browserName: 'obsidian',
+			browserVersion: appVersion,
+			'wdio:obsidianOptions': {
+				installerVersion,
+				plugins: ['.'],
+				vault: 'test/e2e/vault',
+			},
+		})),
+		...(process.env.FX_E2E_MOBILE === '0'
+			? []
+			: [
+					{
+						browserName: 'obsidian',
+						browserVersion: 'latest',
+						'goog:chromeOptions': { mobileEmulation: { deviceMetrics: { width: 390, height: 844, pixelRatio: 1 } } },
+						'wdio:obsidianOptions': {
+							installerVersion: 'latest',
+							emulateMobile: true,
+							plugins: ['.'],
+							vault: 'test/e2e/vault',
+						},
+					},
+				]),
+	],
 	services: ['obsidian'],
 	reporters: ['obsidian'],
 	// Shared download cache for every product; CI caches the same folder.

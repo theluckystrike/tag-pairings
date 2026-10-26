@@ -1,5 +1,5 @@
 import { EditorSuggest, parseFrontMatterTags, type App, type Editor, type EditorPosition, type EditorSuggestContext, type EditorSuggestTriggerInfo, type TFile } from 'obsidian';
-import { frontmatterEnd, inBlockContext, lineTags, triggerOnLine, type PairIndex, type Pairing } from './pairs';
+import { frontmatterEnd, inBlockContext, isListItem, lineTags, triggerOnLine, type PairIndex, type Pairing } from './pairs';
 import type { Effective } from './settings';
 
 /** Internal list of a popover suggest. Core uses it for its own Shift+Enter keys; it is not in obsidian.d.ts. */
@@ -21,7 +21,8 @@ function escapeRe(s: string): string {
  * The suggestion box. It opens when the text before the cursor ends with "#tag" and one space, and lists the tags
  * that occur with that tag in the vault. Shift+Enter, Tab or a click adds the highlighted tag ("#other ") and the box
  * opens again for the new tag. Enter adds a tag only after the user moved the highlight with Up or Down; otherwise
- * Enter closes the box and makes a new line as usual.
+ * Enter closes the box and makes a new line as usual. On a list item line, Tab follows the same rule as Enter: without
+ * a move it closes the box and the editor indents the item.
  */
 export class PairSuggest extends EditorSuggest<Pairing> {
 	private anchor = '';
@@ -71,16 +72,26 @@ export class PairSuggest extends EditorSuggest<Pairing> {
 		return undefined;
 	}
 
-	/** Adds the highlighted tag (Shift+Enter, Tab). Without the internal list, adds the first tag of the box. */
-	accept(evt: KeyboardEvent): false | undefined {
+	/**
+	 * Adds the highlighted tag (Shift+Enter, Tab). Without the internal list, adds the first tag of the box. Returns
+	 * undefined when the box is not open. Tab on a list item line without a move closes the box and returns true, so
+	 * that the editor gets the Tab and indents the item.
+	 */
+	accept(evt: KeyboardEvent): boolean | undefined {
 		if (evt.isComposing) return undefined;
+		const ctx = this.context;
+		if (!ctx || this.shown.length === 0) return undefined;
+		if (evt.key === 'Tab' && !this.moved && isListItem(ctx.editor.getLine(ctx.start.line))) {
+			this.close();
+			return true;
+		}
 		const list = (this as unknown as { suggestions?: SuggestList }).suggestions;
 		if (list && typeof list.useSelectedItem === 'function') {
 			list.useSelectedItem(evt);
 			return false;
 		}
 		const first = this.shown[0];
-		if (first && this.context) {
+		if (first) {
 			this.selectSuggestion(first, evt);
 			return false;
 		}
@@ -89,6 +100,7 @@ export class PairSuggest extends EditorSuggest<Pairing> {
 
 	close(): void {
 		this.moved = false;
+		this.shown = [];
 		super.close();
 	}
 

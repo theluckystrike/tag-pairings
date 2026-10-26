@@ -129,6 +129,11 @@ const FENCE_OPEN = /^\s{0,3}(?:[>-]\s*)*(`{3,}|~{3,})(.*)$/u;
 const FENCE_CLOSE = /^\s{0,3}(?:>\s*)*(`{3,}|~{3,})\s*$/u;
 const LIST_ITEM = /^\s*(?:[-*+]|\d+[.)])\s/u;
 
+/** True when the line is a list item or a task item ("- ", "* ", "+ ", "1. ", "1) ", with or without indent). */
+export function isListItem(line: string): boolean {
+	return LIST_ITEM.test(line);
+}
+
 /** Number of times `mark` occurs in the line. */
 function count(line: string, mark: string): number {
 	let n = 0;

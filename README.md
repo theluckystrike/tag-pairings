@@ -55,7 +55,7 @@ There is nothing to set up. The plugin learns the tag pairs from the notes that 
 
 1. Open a note in Live Preview or Source mode.
 2. Type a tag, for example `#recipe`, then a space.
-3. Press Shift+Enter or Tab to add the highlighted tag. Or move the highlight with Up or Down, then press Enter. Press Escape to close the box and keep typing.
+3. Press Shift+Enter or Tab to add the highlighted tag. On a list item line, Tab indents the item. Or move the highlight with Up or Down, then press Enter. Press Escape to close the box and keep typing.
 
 If you keep typing text after the space, the box closes. It opens only right after a tag and one space.
 
@@ -93,7 +93,17 @@ No other tag shares a note with that tag yet, or each tag that does is already i
 
 ### Does Enter still make a new line?
 
-Yes. Until you move the highlight with Up or Down, Enter closes the box and makes a new line, and a list or task list continues as usual. After Up or Down, Enter adds the highlighted tag. Shift+Enter and Tab always add it.
+Yes. Until you move the highlight with Up or Down, Enter closes the box and makes a new line, and a list or task list continues as usual. After Up or Down, Enter adds the highlighted tag. Shift+Enter always adds it.
+
+This rule uses an internal key order of Obsidian. If a later version changes it, Enter adds the highlighted tag. Then press Escape before Enter.
+
+### Does Tab still indent a list item?
+
+Yes. On a list item line, Tab closes the box and indents the item, until you move the highlight with Up or Down. After that, Tab adds the tag.
+
+### Why do Up and Down not move the cursor?
+
+While the box is open, Up and Down move the highlight, as in the link suggestion box. Press Escape first to move the cursor.
 
 ### Does it suggest tags inside the tags property?
 

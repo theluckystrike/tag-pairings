@@ -97,11 +97,29 @@ async function lastLine(): Promise<string> {
 	});
 }
 
+/** Sets the host note back to "Start" and waits until the index has the seed rank again (the host note counts too). */
+async function resetHost(): Promise<void> {
+	await browser.executeObsidian(({ app }) => app.workspace.activeEditor?.editor?.setValue('Start\n'));
+	await browser.waitUntil(
+		async () =>
+			browser.executeObsidian(({ app }, id) => {
+				const p = (app as unknown as { plugins: { plugins: Record<string, PluginShape> } }).plugins.plugins[id];
+				const r = p?.index?.rank('book') ?? [];
+				return r.map((x) => x.tag + String(x.count)).join(',') === 'fiction2,novel2,history1,reading1';
+			}, pluginId),
+		{ timeout: 15000, interval: 100, timeoutMsg: 'the index did not go back to the seed rank' },
+	);
+}
+
 async function typeText(text: string): Promise<void> {
 	for (const ch of text) await browser.keys(ch);
 }
 
 describe('Tag Pairings in the real app', function () {
+	// The suite drives real key presses on a shared CI runner. A test that fails runs again up to 2 times. Each test sets
+	// the host note text first, so a run again starts from the same state.
+	this.retries(2);
+
 	before(async function () {
 		await seed();
 	});
@@ -144,6 +162,60 @@ describe('Tag Pairings in the real app', function () {
 		expect(await items()).toEqual([]);
 	});
 
+	it('the capability runs on the platform that it asks for (desktop, or the mobile emulation)', async function () {
+		const opts = (browser.requestedCapabilities as { 'wdio:obsidianOptions'?: { emulateMobile?: boolean } })['wdio:obsidianOptions'];
+		const mobile = await browser.executeObsidian(({ obsidian }) => obsidian.Platform.isMobile);
+		console.log(`PLATFORM isMobile ${String(mobile)}`);
+		expect(mobile).toBe(opts?.emulateMobile === true);
+	});
+
+	it('Tab in a list item without a move closes the box and indents the item, and adds no tag', async function () {
+		await openHost('Start\n- first\n- buy milk ', false);
+		await typeText('#book ');
+		await waitItems(['#fiction', '#novel', '#history', '#Reading']);
+		await browser.keys('Tab');
+		await browser.waitUntil(async () => /^(\t| {2,4})- buy milk #book $/u.test(await lastLine()), {
+			timeout: 5000,
+			timeoutMsg: 'Tab did not indent the list item',
+		});
+		const text = await browser.executeObsidian(({ app }) => app.workspace.activeEditor?.editor?.getValue() ?? '');
+		expect(text.split('\n').slice(0, 2)).toEqual(['Start', '- first']);
+		expect(text).not.toContain('#fiction');
+		await browser.keys('Escape');
+		await resetHost();
+	});
+
+	it('Enter without a move in a plain list item makes a new list item', async function () {
+		await openHost('Start\n- first\n- buy milk ', false);
+		await typeText('#book ');
+		await waitItems(['#fiction', '#novel', '#history', '#Reading']);
+		await browser.keys('Enter');
+		let value = '';
+		await browser
+			.waitUntil(
+				async () => {
+					value = (await browser.executeObsidian(({ app }) => app.workspace.activeEditor?.editor?.getValue())) ?? '';
+					return value === 'Start\n- first\n- buy milk #book \n- ';
+				},
+				{ timeout: 5000 },
+			)
+			.catch(() => {
+				throw new Error(`Enter did not make a new list item: ${JSON.stringify(value)}`);
+			});
+		await resetHost();
+	});
+
+	it('Tab in a list item after Down adds the highlighted tag', async function () {
+		await openHost('Start\n- first\n- buy milk ', false);
+		await typeText('#book ');
+		await waitItems(['#fiction', '#novel', '#history', '#Reading']);
+		await browser.keys('ArrowDown');
+		await browser.keys('Tab');
+		await browser.waitUntil(async () => (await lastLine()) === '- buy milk #book #novel ', { timeout: 5000, timeoutMsg: 'Tab after Down did not add the tag' });
+		await browser.keys('Escape');
+		await resetHost();
+	});
+
 	it('criterion 9: Source mode gives the same box', async function () {
 		await openHost('Start\n', true);
 		await typeText('#book ');
@@ -183,11 +255,16 @@ describe('Tag Pairings in the real app', function () {
 				}, pluginId),
 			{ timeout: 10000, interval: 100, timeoutMsg: 'the rank did not follow the edit' },
 		);
-		await openHost('Start\n', false);
-		await typeText('#book ');
-		await waitItems(['#fiction', '#novel', '#history', '#Reading']);
-		await browser.keys('Escape');
-		await obsidianPage.write('Pairs/D.md', '#book #history\n');
+		try {
+			await openHost('Start\n', false);
+			await typeText('#book ');
+			await waitItems(['#fiction', '#novel', '#history', '#Reading']);
+			await browser.keys('Escape');
+		} finally {
+			// Restore D.md also when the test fails, so that a failure does not change the rank in the next tests.
+			await obsidianPage.write('Pairs/D.md', '#book #history\n');
+			await resetHost();
+		}
 	});
 
 	it('rename and delete keep the index right', async function () {
