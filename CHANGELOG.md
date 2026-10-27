@@ -1,5 +1,11 @@
 # tag-pairings
 
+## 1.0.3
+
+### Patch Changes
+
+- e95c1fd: Show counts, Count only this folder and Number of suggestions now show how to get Pro, with a Sponsor on GitHub button. Nothing is saved until Pro is on.
+
 ## 1.0.2
 
 ### Patch Changes

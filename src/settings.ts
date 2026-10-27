@@ -1,7 +1,7 @@
-import { PluginSettingTab, type SettingDefinitionItem } from 'obsidian';
+import { PluginSettingTab, type Notice, type SettingDefinitionItem } from 'obsidian';
 import { sponsorsSettingItems } from './license/github-obsidian';
 import { helloSettingItems } from './hello/settings';
-import { PRO_UI, isPro } from './pro';
+import { PRO_LEADS, PRO_UI, isPro, proNotice } from './pro';
 import type TagPairingsPlugin from './main';
 
 export interface TagPairingsSettings {
@@ -67,17 +67,17 @@ export class TagPairingsSettingTab extends PluginSettingTab {
 			{
 				name: 'Show counts',
 				desc: 'Pro. Show the number of notes that hold both tags next to each suggested tag.',
-				control: { type: 'toggle', key: 'showCounts', defaultValue: DEFAULT_SETTINGS.showCounts, disabled: () => !isPro() },
+				control: { type: 'toggle', key: 'showCounts', defaultValue: DEFAULT_SETTINGS.showCounts },
 			},
 			{
 				name: 'Count only this folder',
 				desc: 'Pro. Count only the notes in the folder of the current note and its subfolders. A note at the vault root counts the whole vault.',
-				control: { type: 'toggle', key: 'folderScope', defaultValue: DEFAULT_SETTINGS.folderScope, disabled: () => !isPro() },
+				control: { type: 'toggle', key: 'folderScope', defaultValue: DEFAULT_SETTINGS.folderScope },
 			},
 			{
 				name: 'Number of suggestions',
 				desc: `Pro. The most tags in the list, from ${MIN_LIMIT} to ${MAX_LIMIT}. The free version shows up to ${FREE_LIMIT}.`,
-				control: { type: 'slider', key: 'limit', defaultValue: DEFAULT_SETTINGS.limit, min: MIN_LIMIT, max: MAX_LIMIT, step: 1, disabled: () => !isPro() },
+				control: { type: 'slider', key: 'limit', defaultValue: DEFAULT_SETTINGS.limit, min: MIN_LIMIT, max: MAX_LIMIT, step: 1 },
 			},
 			{
 				name: 'Pro features',
@@ -89,7 +89,26 @@ export class TagPairingsSettingTab extends PluginSettingTab {
 		];
 	}
 
+	/** The last Pro notice of this tab. A second notice does not show while it is open. */
+	private notice: Notice | null = null;
+
+	getControlValue(key: string): unknown {
+		// A free user sees the values in effect without Pro. The stored choice stays for the time that Pro comes back.
+		if (PRO_LEADS[key] !== undefined && !isPro()) return effectiveOptions(this.plugin.settings, false)[key as keyof Effective];
+		return super.getControlValue(key);
+	}
+
 	async setControlValue(key: string, value: unknown): Promise<void> {
+		const lead = PRO_LEADS[key];
+		if (lead !== undefined && !isPro()) {
+			// A free user selected a Pro setting: tell how to get Pro and save nothing. Move the focus out, then draw the
+			// tab again, so the control shows the value in effect (Obsidian does not draw a focused control again).
+			if (!this.notice?.messageEl.isConnected) this.notice = proNotice(lead);
+			const active = this.containerEl.ownerDocument.activeElement as HTMLElement | null;
+			if (active && this.containerEl.contains(active)) active.blur();
+			this.update();
+			return;
+		}
 		await super.setControlValue(key, value);
 		this.plugin.settings = normalizeSettings(this.plugin.settings);
 	}
