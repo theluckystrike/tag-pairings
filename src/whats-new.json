@@ -1,9 +1,9 @@
 {
 	"id": "tag-pairings",
 	"name": "Tag Pairings",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"changes": [
-		"Show counts, Count only this folder and Number of suggestions now show how to get Pro, with a Sponsor on GitHub button. Nothing is saved until Pro is on."
+		"When the settings refuse a Pro choice, for example in Count only this folder, the keyboard focus now stays on that setting."
 	],
 	"tip": "Type a tag and a space to see related tags. Shift+Enter adds one, and the list opens again. Enter, and Tab on a list item line, add a tag only after Up or Down.",
 	"thanks": "Hi, I am Michael, a solo developer in Poland. Tag Pairings is one of over 100 small plugins that I make. Thank you for trusting it with your notes.",
