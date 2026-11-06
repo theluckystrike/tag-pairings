@@ -1,9 +1,9 @@
 {
 	"id": "tag-pairings",
 	"name": "Tag Pairings",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"minAppVersion": "1.13.4",
-	"description": "After you type a tag, suggests the tags that occur most often with it in your vault.",
+	"description": "Suggest related tags after you type a tag. The suggestions list the common tags that occur together with it in your notes, most often first.",
 	"author": "Michael Lip",
 	"authorUrl": "https://github.com/theluckystrike",
 	"fundingUrl": "https://github.com/sponsors/theluckystrike",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PairIndex, triggerOnLine } from '../src/pairs';
+import { GROWTH_LIMIT, growth } from './growth';
 
 /** A small seeded random generator, so the test gives the same vault each run. */
 function rng(seed: number): () => number {
@@ -94,25 +95,39 @@ describe('PairIndex incremental updates', () => {
 		expect(index.rank('x')).toEqual([{ tag: 'novel', display: 'Novel', count: 3 }]);
 	});
 
-	it('builds an index of 10,000 notes and ranks in a short time', () => {
-		const notes = vault(10_000, 11);
-		const t0 = performance.now();
-		const index = new PairIndex();
-		for (const [p, t] of notes) index.set(p, t);
-		const build = performance.now() - t0;
-		const t1 = performance.now();
-		for (let i = 0; i < 100; i++) index.rank('tag1');
-		const rank = (performance.now() - t1) / 100;
-		console.log(`TIMING build 10000 notes ${build.toFixed(1)} ms, rank ${rank.toFixed(3)} ms`);
-		expect(index.size).toBe(10_000);
-		expect(build).toBeLessThan(2000);
-		expect(rank).toBeLessThan(20);
+	it('builds an index of 10,000 notes and ranks, in time that grows linearly with the note count', () => {
+		const indexOf = (n: number) => {
+			const index = new PairIndex();
+			for (const [p, t] of vault(n, 11)) index.set(p, t);
+			return index;
+		};
+		expect(indexOf(10_000).size).toBe(10_000);
+		// Growth guards (s1101): 10,000 notes against 1,000 notes, timed in this test.
+		const build = growth((n) => {
+			const notes = vault(n, 11);
+			return () => {
+				const index = new PairIndex();
+				for (const [p, t] of notes) index.set(p, t);
+			};
+		}, 10_000);
+		expect(build.ratio, `build: ${build.text}`).toBeLessThan(GROWTH_LIMIT);
+		const rank = growth((n) => {
+			const index = indexOf(n);
+			return () => {
+				for (let i = 0; i < 100; i++) index.rank('tag1');
+			};
+		}, 10_000);
+		expect(rank.ratio, `rank: ${rank.text}`).toBeLessThan(GROWTH_LIMIT);
 	});
 
-	it('exits the trigger check fast on a long line', () => {
-		const line = 'word '.repeat(20_000) + 'x';
-		const t0 = performance.now();
-		for (let i = 0; i < 1000; i++) triggerOnLine(line);
-		expect(performance.now() - t0).toBeLessThan(200);
+	it('checks a long line for a trigger in time that grows at most linearly with the line length', () => {
+		// Growth guard (s1101): 20,000 words against 2,000 words, 1,000 checks each, timed in this test.
+		const g = growth((n) => {
+			const line = 'word '.repeat(n) + 'x';
+			return () => {
+				for (let i = 0; i < 1000; i++) triggerOnLine(line);
+			};
+		}, 20_000);
+		expect(g.ratio, g.text).toBeLessThan(GROWTH_LIMIT);
 	});
 });
